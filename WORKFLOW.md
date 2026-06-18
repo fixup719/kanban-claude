@@ -1,6 +1,6 @@
 # WORKFLOW.md
 
-작업 히스토리. 프롬프트는 원문 그대로, 작업 내용은 요약.
+작업 히스토리. 요청 내용과 수행한 작업을 날짜별로 기록한다.
 
 ---
 
@@ -8,70 +8,90 @@
 
 ---
 
-### [1] `~/work/kosa-vibecoding-2026-3rd/src/exercise/fixup719/day03/kanban/ 아래 소스랑 ~/work/kanban-claude/ 아래소스 동기화 방법 알려죠`
+### [1] 소스 동기화 방법 안내
 
+**요청:** `kanban/` 디렉토리와 `~/work/kanban-claude/` 디렉토리 간 동기화 방법 문의
+
+**작업:**
 - 기존 `sync.sh` 파일 확인 및 사용법 안내
 - `sync.sh`가 kanban/ → kanban-claude/ 파일 복사 + git 커밋 + GitHub Pages 배포를 자동 처리함을 설명
 
 ---
 
-### [2] `변경사항 git에 올려죠`
+### [2] 변경사항 git 커밋 요청
 
+**요청:** 변경사항을 git에 올려달라는 요청
+
+**작업:**
 - `git status` 확인 → 변경사항 없음(clean) 안내
 
 ---
 
-### [3] `github 페이지로 접속하면 로그인 창이 안뜨는데?`
+### [3] GitHub Pages 로그인 화면 미표시 문제
 
+**요청:** GitHub Pages 접속 시 로그인 창이 나타나지 않는 문제
+
+**작업:**
 - `app.js` 확인 → `ensureSession()`이 `signInAnonymously()`로 자동 익명 로그인 처리 중 (로그인 UI 없음)
-- `index.html` 확인 → 로그인 마크업 없음
-- 로그인 방식 선택 질문 → 사용자가 "게스트 모드 + Google OAuth 둘 다" 선택
-- **구현 내용:**
-  - `index.html`: 로그인 오버레이(Google 버튼 + 게스트 버튼) 추가, 헤더에 `user-info` 영역 추가
-  - `style.css`: 로그인 오버레이 스타일 추가, 헤더 우측 영역 스타일 추가
-  - `app.js`: `init()` → 세션 유무에 따라 로그인 오버레이 표시 or 보드 진입으로 분기, `showLoginOverlay()` / `startBoard()` / `renderUserInfo()` 함수 추가
+- 로그인 방식 선택 → Google OAuth + 게스트 모드 둘 다 구현
+- `index.html`: 로그인 오버레이(Google 버튼 + 게스트 버튼) 추가, 헤더에 사용자 정보 영역 추가
+- `style.css`: 로그인 오버레이 스타일 추가
+- `app.js`: 세션 유무에 따라 로그인 오버레이 표시 or 보드 진입 분기, `showLoginOverlay()` / `startBoard()` / `renderUserInfo()` 함수 추가
 
 ---
 
-### [4] `변경사항 git에 올려줘`
+### [4] 변경사항 git 커밋 및 푸시
 
+**요청:** 변경사항을 git에 올려달라는 요청
+
+**작업:**
 - `git add` → `git commit` → `git pull --no-rebase` → `git push` 수행
 - 커밋 메시지: `feat(day03/kanban): 로그인 오버레이 추가 (Google OAuth + 게스트 모드)`
 
 ---
 
-### [5] `버튼은 생겼는데 디자인이 구리네..;; 처음진입할때 로그인 선택창 뜨고 로그인하면 칸반보드가 뜨게 해줘. 그리고 로그인창 눌러도 반응이 없는데 그것도 확인해주고, 다 변경되면 git에 커밋하고 배포용 레포지토리 소스랑도 동기화 부탁해~`
+### [5] 로그인 화면 디자인 개선 및 버튼 동작 수정 + 배포
 
-- **버그 원인:** 버튼 클릭 시 실패해도 UI 피드백 없이 `console.error`만 출력
-- **구현 내용:**
-  - `index.html`: 로그인 카드 마크업 재구성 (미니 칸반 컬럼 로고, 에러 메시지 영역 추가)
-  - `style.css`: 로그인 화면 전면 재디자인 — 슬라이드업 애니메이션, 글로우 효과, Google/게스트 버튼 계층 구분, 스피너 CSS
-  - `app.js`: `setSpinning()` (클릭 시 버튼 비활성화 + 스피너), `showError()` (에러 메시지 UI 표시), 게스트 로그인 성공 시 페이드아웃 애니메이션 후 보드 전환
+**요청:** 로그인 화면 디자인 개선, 버튼 클릭 시 반응 없는 문제 수정, git 커밋 및 배포 레포 동기화
+
+**작업:**
+- 버그 원인 파악: 버튼 클릭 실패 시 `console.error`만 출력하고 UI 피드백 없음
+- `index.html`: 로그인 카드 마크업 재구성 (미니 칸반 컬럼 로고, 에러 메시지 영역 추가)
+- `style.css`: 로그인 화면 전면 재디자인 — 슬라이드업 애니메이션, 글로우 효과, Google/게스트 버튼 계층 구분, 스피너 CSS
+- `app.js`: 클릭 시 버튼 비활성화 + 스피너, 에러 메시지 UI 표시, 게스트 로그인 성공 시 페이드아웃 후 보드 전환
 - `git commit` → `git push` → `sync.sh` 실행 (GitHub Pages 배포)
 
 ---
 
-### [6] `음 일단 게스트로시잦ㄱ하기누르면 게스트 접속 실패: Anonymous sign-ins are disabled 이렇게떠`
+### [6] 게스트 로그인 실패 (Anonymous sign-ins are disabled)
 
-- 코드 문제 아님. Supabase 대시보드 설정 문제
-- 안내: Supabase → kanban 프로젝트 → Authentication → Providers → "Allow anonymous sign-ins" ON → Save
+**요청:** 게스트로 시작하기 클릭 시 "Anonymous sign-ins are disabled" 오류 발생
+
+**작업:**
+- 코드 문제 아님. Supabase 대시보드 설정 문제로 안내
+- Supabase → kanban 프로젝트 → Authentication → Providers → "Allow anonymous sign-ins" ON → Save
 
 ---
 
-### [7] `내가 supabase 무료버전 쓰고있어서 이미 todo-planner에서 쓰고있어서 kanban프로젝트는 status 상태가 checking이야. todo-planner 프로젝트 status는 끄고, kanban프로젝트를 살리는 방법이 있을까?`
+### [7] Supabase 무료 플랜 프로젝트 전환 방법
 
+**요청:** Supabase 무료 플랜 사용 중 todo-planner 프로젝트가 활성 상태여서 kanban 프로젝트가 일시정지(checking) 상태. 두 프로젝트를 전환하는 방법 문의
+
+**작업:**
 - Supabase 무료 플랜 제약 설명 (비활성 프로젝트 자동 일시정지)
 - 안내:
-  1. todo-planner 프로젝트 → Settings → General → Pause project
+  1. todo-planner → Settings → General → Pause project
   2. kanban 프로젝트 → Restore project
-  3. kanban 복구 후 Anonymous sign-ins 활성화
+  3. 복구 후 Anonymous sign-ins 활성화
 
 ---
 
-### [8] `google로 계속하기 누르면 액세스 차단됨: 이 앱의 요청이 잘못되었습니다 이렇게떠`
+### [8] Google 로그인 액세스 차단 오류
 
-- Google OAuth 앱 미설정 상태
-- 안내:
+**요청:** Google로 계속하기 클릭 시 "액세스 차단됨: 이 앱의 요청이 잘못되었습니다" 오류 발생
+
+**작업:**
+- Google OAuth 앱 미설정 상태로 판단, 설정 방법 안내
   1. Google Cloud Console → OAuth 2.0 클라이언트 ID 생성
   2. 승인된 리디렉션 URI에 `https://lbepkfydkfwvnvapzcrj.supabase.co/auth/v1/callback` 추가
   3. Supabase → Authentication → Providers → Google → Client ID/Secret 입력
@@ -79,28 +99,43 @@
 
 ---
 
-### [9] `다 설정헀는데?`
+### [9] Google OAuth 설정 후에도 오류 지속
 
-- 추가 체크리스트 안내:
-  1. OAuth 동의 화면이 "테스트 중" 상태면 테스트 사용자에 Gmail 추가 또는 앱 게시
+**요청:** 설정을 완료했는데도 Google 로그인 오류가 계속 발생
+
+**작업:**
+- 추가 체크리스트 안내
+  1. OAuth 동의 화면이 "테스트 중" 상태이면 테스트 사용자에 Gmail 추가 또는 앱 게시
   2. 리디렉션 URI 정확히 일치 여부 재확인
 
 ---
 
-### [10] `oauth 동의화면에서 상태값을 어떻게 봐`
+### [10] OAuth 동의 화면 상태 확인 방법
 
-- 안내: Google Cloud Console → API 및 서비스 → OAuth 동의 화면 → 상단 "게시 상태" 확인
-- "테스트 중"이면 테스트 사용자 추가 방법 안내
+**요청:** Google Cloud Console에서 OAuth 동의 화면 상태값 확인 방법 문의
 
----
-
-### [11] `오오 구글 로그인은 이제 된다. 게스트로 시작하기는 왜 안되지? 게스트 접속 실패: Anonymous sign-ins are disabled`
-
-- 안내: Supabase → kanban 프로젝트 → Authentication → Providers → "Allow anonymous sign-ins" ON → Save
+**작업:**
+- Google Cloud Console → API 및 서비스 → OAuth 동의 화면 → 상단 "게시 상태" 확인 방법 안내
+- "테스트 중" 상태일 경우 테스트 사용자 추가 방법 안내
 
 ---
 
-### [12] `잘 됐어 ㅎㅎ 지금까지 내가 전달한 프롬프트와 그에 상응해서 네가 한 작업을 정리해서 WORKFLOW.md로 저장해줘. 프롬프트는 그대로 써야하고 작업은 요약해서 작성해주면 돼. 이 내용을 CLAUDE.md에 반영해서 앞으로는 작업시 항상 WORKFLOW.md를 갱신하게 해줘.`
+### [11] 게스트 로그인 재시도 실패
 
+**요청:** Google 로그인은 성공했으나 게스트 로그인이 "Anonymous sign-ins are disabled"로 여전히 실패
+
+**작업:**
+- Supabase 프로젝트 복구 후 익명 로그인 설정을 다시 활성화해야 함을 안내
+- Supabase → kanban 프로젝트 → Authentication → Providers → "Allow anonymous sign-ins" ON → Save
+
+---
+
+### [12] WORKFLOW.md 생성 및 CLAUDE.md 갱신 규칙 추가
+
+**요청:** 작업 히스토리를 WORKFLOW.md로 정리하고, 앞으로 작업 시 항상 WORKFLOW.md를 갱신하도록 CLAUDE.md에 반영
+
+**작업:**
 - `WORKFLOW.md` 생성 (이 파일)
 - `CLAUDE.md`에 WORKFLOW.md 갱신 규칙 추가
+- `sync.sh`에 `CLAUDE.md`, `WORKFLOW.md` 동기화 대상 추가
+- git 커밋 + push + GitHub Pages 배포
