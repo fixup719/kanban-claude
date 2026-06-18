@@ -179,18 +179,51 @@ kanban-claude/          ← GitHub 저장소 루트 (GitHub Pages 서빙)
 
 ---
 
-## 업데이트 배포 방법
+## 소스 동기화 및 업데이트 배포
 
-소스 수정 후:
+`day03/kanban` 소스를 수정한 뒤 `~/work/kanban-claude`에 반영하고 GitHub Pages에 배포하는 방법.
+
+---
+
+### 방법 A — sync.sh 스크립트 (권장)
+
+소스 디렉토리에 `sync.sh`가 포함되어 있다.  
+**최초 1회** 실행 권한을 부여한다:
 
 ```bash
+chmod +x /home/ubuntu/work/kosa-vibecoding-2026-3rd/src/exercise/fixup719/day03/kanban/sync.sh
+```
+
+이후 소스를 수정할 때마다 아래 명령 하나로 동기화 + 커밋 + 푸시가 완료된다:
+
+```bash
+/home/ubuntu/work/kosa-vibecoding-2026-3rd/src/exercise/fixup719/day03/kanban/sync.sh
+```
+
+스크립트 동작 순서:
+1. `index.html` `style.css` `app.js` `config.js` 를 `~/work/kanban-claude/`로 복사
+2. 변경사항이 없으면 커밋 없이 종료
+3. 변경사항이 있으면 `sync: YYYY-MM-DD HH:MM` 메시지로 자동 커밋 & 푸시
+
+---
+
+### 방법 B — 수동 동기화
+
+```bash
+SRC="/home/ubuntu/work/kosa-vibecoding-2026-3rd/src/exercise/fixup719/day03/kanban"
+
+cp "$SRC/index.html" ~/work/kanban-claude/
+cp "$SRC/style.css"  ~/work/kanban-claude/
+cp "$SRC/app.js"     ~/work/kanban-claude/
+cp "$SRC/config.js"  ~/work/kanban-claude/
+
 cd ~/work/kanban-claude
-cp /home/ubuntu/work/kosa-vibecoding-2026-3rd/src/exercise/fixup719/day03/kanban/app.js .
-# (수정된 파일만 복사)
-git add -u
-git commit -m "fix: 변경 내용 설명"
+git add index.html style.css app.js config.js
+git commit -m "sync: $(date '+%Y-%m-%d %H:%M')"
 git push origin main
 ```
 
-`main` 브랜치에 push하면 GitHub Actions가 자동으로 Pages를 다시 빌드한다.  
+---
+
+`main` 브랜치에 push하면 GitHub Pages가 자동으로 재빌드된다.  
 배포 상태는 저장소 **Actions** 탭에서 확인한다.

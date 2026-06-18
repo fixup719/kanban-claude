@@ -347,7 +347,213 @@ supabase status
 
 ---
 
-## 10. 보안 체크리스트
+## 10. OAuth 소셜 로그인 설정
+
+현재 앱은 익명 로그인을 사용한다. OAuth를 추가하면 Google·GitHub 계정으로 로그인할 수 있고,  
+기기가 달라도 같은 보드에 접근할 수 있다.
+
+---
+
+### 10.1 Google OAuth
+
+#### Google Cloud Console 설정
+
+1. [https://console.cloud.google.com](https://console.cloud.google.com) 접속
+2. 프로젝트 생성 (또는 기존 프로젝트 선택)
+3. **APIs & Services → OAuth consent screen**
+   - User Type: **External** 선택 → Create
+   - App name: `Kanban Board`
+   - User support email: 본인 이메일 입력
+   - Developer contact: 본인 이메일 입력 → Save and Continue
+   - Scopes: 기본값 유지 → Save and Continue
+   - Test users: 본인 이메일 추가 → Save and Continue
+4. **APIs & Services → Credentials → + CREATE CREDENTIALS → OAuth client ID**
+   - Application type: **Web application**
+   - Name: `Kanban Board`
+   - Authorized redirect URIs에 아래 URL 추가:
+     ```
+     https://lbepkfydkfwvnvapzcrj.supabase.co/auth/v1/callback
+     ```
+   - **Create** 클릭
+5. 생성된 **Client ID**와 **Client Secret** 복사
+
+#### Supabase에 Google 등록
+
+1. Supabase 대시보드 → **Authentication → Providers → Google**
+2. **Enable** 토글 ON
+3. Client ID / Client Secret 붙여넣기
+4. **Save**
+
+---
+
+### 10.2 GitHub OAuth
+
+#### GitHub OAuth App 생성
+
+1. GitHub → **Settings → Developer settings → OAuth Apps → New OAuth App**
+2. 아래와 같이 입력:
+
+   | 항목 | 값 |
+   |------|----|
+   | Application name | `Kanban Board` |
+   | Homepage URL | `https://fixup719.github.io/kanban-claude` |
+   | Authorization callback URL | `https://lbepkfydkfwvnvapzcrj.supabase.co/auth/v1/callback` |
+
+3. **Register application** 클릭
+4. **Generate a new client secret** 클릭
+5. **Client ID**와 **Client Secret** 복사
+
+#### Supabase에 GitHub 등록
+
+1. Supabase 대시보드 → **Authentication → Providers → GitHub**
+2. **Enable** 토글 ON
+3. Client ID / Client Secret 붙여넣기
+4. **Save**
+
+---
+
+### 10.3 Supabase URL Configuration
+
+**Authentication → URL Configuration** 메뉴에서:
+
+| 항목 | 값 |
+|------|----|
+| Site URL | `https://fixup719.github.io/kanban-claude` |
+| Redirect URLs | `https://fixup719.github.io/kanban-claude` |
+| Redirect URLs | `http://localhost:8787` (로컬 개발용, 추가) |
+
+---
+
+### 10.4 RLS 정책 교체
+
+OAuth 로그인을 적용하면 임시 `allow_all_temp` 정책을 삭제하고 본인 소유 데이터만 접근하도록 교체한다.
+
+```sql
+-- 임시 정책 삭제
+DROP POLICY IF EXISTS "allow_all_temp" ON boards;
+DROP POLICY IF EXISTS "allow_all_temp" ON cards;
+
+-- boards: 본인 보드만 CRUD
+CREATE POLICY "boards_owner_all" ON boards
+  FOR ALL
+  USING (owner_id = auth.uid())
+  WITH CHECK (owner_id = auth.uid());
+
+-- cards: 본인 보드의 카드만 CRUD
+CREATE POLICY "cards_board_owner" ON cards
+  FOR ALL
+  USING (board_id IN (SELECT id FROM boards WHERE owner_id = auth.uid()))
+  WITH CHECK (board_id IN (SELECT id FROM boards WHERE owner_id = auth.uid()));
+```
+
+---
+
+### 10.5 index.html — 로그인 UI 추가
+
+`<header>` 안에 로그인 버튼과 사용자 정보 영역을 추가한다.
+
+```html
+<header>
+  <h1>Kanban Board</h1>
+  <div class="header-actions">
+    <button id="add-card-btn">+ 카드 추가</button>
+    <!-- 로그인 영역 -->
+    <div id="auth-area">
+      <span id="user-email" style="display:none"></span>
+      <button id="btn-login-google" style="display:none">Google로 로그인</button>
+      <button id="btn-login-github" style="display:none">GitHub로 로그인</button>
+      <button id="btn-logout" style="display:none">로그아웃</button>
+    </div>
+  </div>
+</header>
+```
+
+---
+
+### 10.6 app.js — OAuth 코드 패턴
+
+기존 `ensureSession()` (익명 로그인)을 아래 패턴으로 교체한다.
+
+```js
+/* ── Auth 초기화 ── */
+async function initAuth() {
+  // 페이지 로드 시 세션 복원 (OAuth 리다이렉트 후 자동 처리됨)
+  const { data: { session } } = await db.auth.getSession();
+  updateAuthUI(session?.user ?? null);
+
+  // 세션 변경(로그인/로그아웃) 감지
+  db.auth.onAuthStateChange((_event, session) => {
+    updateAuthUI(session?.user ?? null);
+    if (session) {
+      ensureBoard().then(id => { boardId = id; loadCards().then(render); });
+    } else {
+      cards = [];
+      boardId = null;
+      render();
+    }
+  });
+}
+
+function updateAuthUI(user) {
+  const emailEl   = document.getElementById('user-email');
+  const btnGoogle = document.getElementById('btn-login-google');
+  const btnGitHub = document.getElementById('btn-login-github');
+  const btnLogout = document.getElementById('btn-logout');
+  const addBtn    = document.getElementById('add-card-btn');
+
+  if (user) {
+    emailEl.textContent = user.email ?? '로그인됨';
+    emailEl.style.display   = 'inline';
+    btnGoogle.style.display = 'none';
+    btnGitHub.style.display = 'none';
+    btnLogout.style.display = 'inline';
+    addBtn.style.display    = 'inline';
+  } else {
+    emailEl.style.display   = 'none';
+    btnGoogle.style.display = 'inline';
+    btnGitHub.style.display = 'inline';
+    btnLogout.style.display = 'none';
+    addBtn.style.display    = 'none';
+  }
+}
+
+function bindAuthButtons() {
+  const redirectTo = window.location.origin + window.location.pathname;
+
+  document.getElementById('btn-login-google').addEventListener('click', () => {
+    db.auth.signInWithOAuth({ provider: 'google', options: { redirectTo } });
+  });
+
+  document.getElementById('btn-login-github').addEventListener('click', () => {
+    db.auth.signInWithOAuth({ provider: 'github', options: { redirectTo } });
+  });
+
+  document.getElementById('btn-logout').addEventListener('click', async () => {
+    await db.auth.signOut();
+  });
+}
+
+/* ── init 수정 ── */
+async function init() {
+  bindAuthButtons();
+  await initAuth();  // ensureSession() 대신 사용
+}
+```
+
+> `redirectTo`를 `window.location.origin + pathname`으로 지정하면  
+> 로컬(`http://localhost:8787`)과 GitHub Pages(`https://fixup719.github.io/kanban-claude/`) 모두 동작한다.
+
+---
+
+### 10.7 로컬 테스트 시 주의
+
+Google/GitHub OAuth는 `localhost`에서도 동작하지만,  
+Supabase URL Configuration의 **Redirect URLs**에 `http://localhost:8787`이 등록되어 있어야 한다.  
+(10.3 참고)
+
+---
+
+## 11. 보안 체크리스트
 
 - [ ] `service_role` 키가 클라이언트 코드에 없음
 - [ ] 모든 테이블에 RLS 활성화
