@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kanban Board</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>Kanban Board</h1>
+    <button id="add-card-btn">+ 카드 추가</button>
+  </header>
+
+  <main class="board">
+    <section class="column" id="todo" data-status="todo">
+      <div class="column-header">
+        <h2>TO-DO</h2>
+        <span class="card-count">0</span>
+      </div>
+      <div class="card-list" id="todo-list"></div>
+    </section>
+
+    <section class="column" id="in-progress" data-status="in-progress">
+      <div class="column-header">
+        <h2>IN-PROGRESS</h2>
+        <span class="card-count">0</span>
+      </div>
+      <div class="card-list" id="in-progress-list"></div>
+    </section>
+
+    <section class="column" id="done" data-status="done">
+      <div class="column-header">
+        <h2>DONE</h2>
+        <span class="card-count">0</span>
+      </div>
+      <div class="card-list" id="done-list"></div>
+    </section>
+  </main>
+
+  <!-- 카드 추가 모달 -->
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal">
+      <h3>새 카드 추가</h3>
+      <label for="card-title">제목</label>
+      <input type="text" id="card-title" placeholder="카드 제목을 입력하세요" maxlength="50">
+      <label for="card-desc">설명</label>
+      <textarea id="card-desc" placeholder="카드 설명을 입력하세요 (선택)" rows="3" maxlength="200"></textarea>
+      <label for="card-priority">우선순위</label>
+      <select id="card-priority">
+        <option value="low">낮음</option>
+        <option value="medium" selected>보통</option>
+        <option value="high">높음</option>
+      </select>
+      <div class="modal-actions">
+        <button id="modal-cancel">취소</button>
+        <button id="modal-confirm">추가</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
