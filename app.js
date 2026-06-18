@@ -17,19 +17,47 @@ async function init() {
 }
 
 function showLoginOverlay() {
-  document.getElementById('login-overlay').classList.add('active');
+  const overlay = document.getElementById('login-overlay');
+  const googleBtn = document.getElementById('google-login-btn');
+  const guestBtn = document.getElementById('guest-login-btn');
+  const errorEl = document.getElementById('login-error');
 
-  document.getElementById('google-login-btn').addEventListener('click', async () => {
-    await db.auth.signInWithOAuth({
+  overlay.classList.add('active');
+
+  function setSpinning(btn, on) {
+    btn.disabled = on;
+    btn.classList.toggle('btn-spinning', on);
+  }
+
+  function showError(msg) {
+    errorEl.textContent = msg;
+  }
+
+  googleBtn.addEventListener('click', async () => {
+    setSpinning(googleBtn, true);
+    showError('');
+    const { error } = await db.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: window.location.href }
     });
+    if (error) {
+      showError('Google 로그인 실패: ' + error.message);
+      setSpinning(googleBtn, false);
+    }
+    // 성공 시 브라우저가 Google로 리다이렉트하므로 별도 처리 불필요
   });
 
-  document.getElementById('guest-login-btn').addEventListener('click', async () => {
+  guestBtn.addEventListener('click', async () => {
+    setSpinning(guestBtn, true);
+    showError('');
     const { error } = await db.auth.signInAnonymously();
-    if (error) { console.error('익명 로그인 실패:', error.message); return; }
-    document.getElementById('login-overlay').classList.remove('active');
+    if (error) {
+      showError('게스트 접속 실패: ' + error.message);
+      setSpinning(guestBtn, false);
+      return;
+    }
+    overlay.classList.add('fade-out');
+    overlay.addEventListener('animationend', () => overlay.classList.remove('active'), { once: true });
     await startBoard();
   });
 }
