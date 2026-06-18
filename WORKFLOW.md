@@ -130,6 +130,21 @@
 
 ---
 
+### [13] 팀 공유 및 활동 로그 구현 가이드라인 요청
+
+**요청:** 칸반 보드를 팀원과 공유하고 활동 로그를 기록하는 기능을 어떤 방향으로 구현할지 가이드라인 작성 요청
+
+**작업:**
+- 현재 DB 구조(`boards`, `cards`, `owner_id` 기반 1인 1보드) 분석
+- `docs/SHARE_AND_ACTIVITY_GUIDE.md` 생성, 내용:
+  - **팀 공유** — Option A(공유 링크/share_token, 권장) vs Option B(board_members 멤버십)
+  - **활동 로그** — Option A(activity_logs 테이블 + Realtime, 권장) vs Option B(DB 트리거)
+  - DB 스키마 예시, 앱 로직 코드 예시, RLS 정책 주의사항
+  - 단계별 구현 로드맵 (Step 1~7)
+- git 커밋 + push
+
+---
+
 ### [12] WORKFLOW.md 생성 및 CLAUDE.md 갱신 규칙 추가
 
 **요청:** 작업 히스토리를 WORKFLOW.md로 정리하고, 앞으로 작업 시 항상 WORKFLOW.md를 갱신하도록 CLAUDE.md에 반영
