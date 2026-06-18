@@ -37,6 +37,8 @@
     <h1>Kanban Board</h1>
     <div class="header-right">
       <div id="user-info"></div>
+      <button id="activity-btn" type="button">활동 로그</button>
+      <button id="share-btn" type="button">링크 복사</button>
       <button id="add-card-btn">+ 카드 추가</button>
     </div>
   </header>
@@ -87,6 +89,20 @@
       </div>
     </div>
   </div>
+
+  <!-- 활동 로그 패널 -->
+  <div class="activity-panel" id="activity-panel">
+    <div class="activity-panel-header">
+      <span>활동 로그</span>
+      <button id="activity-close-btn" type="button">✕</button>
+    </div>
+    <ul class="activity-list" id="activity-list">
+      <li class="activity-empty">활동 내역이 없습니다.</li>
+    </ul>
+  </div>
+
+  <!-- 토스트 알림 -->
+  <div class="toast" id="toast"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <script src="config.js"></script>

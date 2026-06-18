@@ -5,6 +5,10 @@ let cards = [];
 let boardId = null;
 let draggedCard = null;
 let placeholder = null;
+let activityPanelOpen = false;
+let toastTimer = null;
+
+const shareToken = new URLSearchParams(location.search).get('share');
 
 /* ── 초기화 ── */
 async function init() {
@@ -44,7 +48,6 @@ function showLoginOverlay() {
       showError('Google 로그인 실패: ' + error.message);
       setSpinning(googleBtn, false);
     }
-    // 성공 시 브라우저가 Google로 리다이렉트하므로 별도 처리 불필요
   });
 
   guestBtn.addEventListener('click', async () => {
@@ -64,11 +67,22 @@ function showLoginOverlay() {
 
 async function startBoard() {
   boardId = await ensureBoard();
+  if (!boardId) return;
   await loadCards();
   render();
   bindModal();
+  bindHeaderActions();
   subscribeRealtime();
   renderUserInfo();
+  await loadActivityLogs();
+
+  if (shareToken) {
+    const joinKey = `joined_${boardId}`;
+    if (!sessionStorage.getItem(joinKey)) {
+      sessionStorage.setItem(joinKey, '1');
+      logActivity('board_joined', null, null);
+    }
+  }
 }
 
 function renderUserInfo() {
@@ -89,7 +103,19 @@ function renderUserInfo() {
   });
 }
 
+function bindHeaderActions() {
+  document.getElementById('share-btn').addEventListener('click', copyShareLink);
+  document.getElementById('activity-btn').addEventListener('click', toggleActivityPanel);
+  document.getElementById('activity-close-btn').addEventListener('click', toggleActivityPanel);
+}
+
+/* ── 보드 ── */
 async function ensureBoard() {
+  if (shareToken) {
+    const { data } = await db.from('boards').select('id').eq('share_token', shareToken).maybeSingle();
+    if (data) return data.id;
+  }
+
   const cached = localStorage.getItem('kanban_board_id');
   if (cached) {
     const { data } = await db.from('boards').select('id').eq('id', cached).maybeSingle();
@@ -205,7 +231,6 @@ function bindColumnDrop(column, list) {
     const newStatus = column.dataset.status;
     const afterEl = getDragAfterElement(list, e.clientY);
 
-    // 같은 컬럼 카드를 position 순 정렬 (드래그 중인 카드 제외)
     const colCards = cards
       .filter(c => c.status === newStatus && c.id !== draggedCard.id)
       .sort((a, b) => a.position - b.position);
@@ -222,9 +247,9 @@ function bindColumnDrop(column, list) {
         : afterCard.position - 500;
     }
 
-    // 낙관적 업데이트
     const cardObj = cards.find(c => c.id === draggedCard.id);
     if (!cardObj) return;
+    const oldStatus = cardObj.status;
     cardObj.status = newStatus;
     cardObj.position = newPosition;
     cards.sort((a, b) => a.position - b.position);
@@ -239,6 +264,8 @@ function bindColumnDrop(column, list) {
       console.error('카드 이동 실패:', error.message);
       await loadCards();
       render();
+    } else if (oldStatus !== newStatus) {
+      logActivity('card_moved', cardObj.id, cardObj.title, { from: oldStatus, to: newStatus });
     }
   });
 }
@@ -272,7 +299,8 @@ function getDragAfterElement(list, y) {
 
 /* ── 카드 삭제 ── */
 async function deleteCard(id) {
-  // 낙관적 업데이트
+  const card = cards.find(c => c.id === id);
+  const title = card?.title || '';
   cards = cards.filter(c => c.id !== id);
   render();
 
@@ -285,6 +313,8 @@ async function deleteCard(id) {
     console.error('카드 삭제 실패:', error.message);
     await loadCards();
     render();
+  } else {
+    logActivity('card_deleted', id, title);
   }
 }
 
@@ -345,6 +375,7 @@ function bindModal() {
     cards.push(data);
     render();
     closeModal();
+    logActivity('card_created', data.id, data.title);
   }
 
   function closeModal() {
@@ -361,17 +392,144 @@ function subscribeRealtime() {
   db.channel('cards-changes')
     .on('postgres_changes',
       { event: '*', schema: 'public', table: 'cards', filter: `board_id=eq.${boardId}` },
-      async () => {
-        await loadCards();
-        render();
+      async () => { await loadCards(); render(); }
+    )
+    .subscribe();
+
+  db.channel('activity-changes')
+    .on('postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'activity_logs', filter: `board_id=eq.${boardId}` },
+      payload => {
+        const list = document.getElementById('activity-list');
+        const empty = list.querySelector('.activity-empty');
+        if (empty) empty.remove();
+        list.insertBefore(buildActivityItem(payload.new), list.firstChild);
       }
     )
     .subscribe();
 }
 
+/* ── 활동 로그 ── */
+async function logActivity(action, entityId, entityName, meta = {}) {
+  const { data: { user } } = await db.auth.getUser();
+  if (!user) return;
+  const actorName = user.is_anonymous
+    ? '게스트'
+    : (user.user_metadata?.full_name || user.email || '알 수 없음');
+  await db.from('activity_logs').insert({
+    board_id: boardId,
+    user_id: user.id,
+    actor_name: actorName,
+    action,
+    entity_id: entityId,
+    entity_name: entityName,
+    meta,
+  });
+}
+
+async function loadActivityLogs() {
+  const { data, error } = await db
+    .from('activity_logs')
+    .select('*')
+    .eq('board_id', boardId)
+    .order('created_at', { ascending: false })
+    .limit(50);
+  if (error) { console.error('로그 로드 실패:', error.message); return; }
+  renderActivityLogs(data);
+}
+
+function renderActivityLogs(logs) {
+  const list = document.getElementById('activity-list');
+  if (!logs.length) {
+    list.innerHTML = '<li class="activity-empty">활동 내역이 없습니다.</li>';
+    return;
+  }
+  list.innerHTML = '';
+  logs.forEach(log => list.appendChild(buildActivityItem(log)));
+}
+
+function buildActivityItem(log) {
+  const li = document.createElement('li');
+  li.className = 'activity-item';
+  li.dataset.id = log.id;
+  li.innerHTML = `
+    <div class="activity-text">${actionLabel(log)}</div>
+    <div class="activity-time">${timeAgo(log.created_at)}</div>
+  `;
+  return li;
+}
+
+function actionLabel(log) {
+  const actor = `<span class="activity-actor">${escapeHtml(log.actor_name)}</span>`;
+  const entity = log.entity_name ? `<b>'${escapeHtml(log.entity_name)}'</b>` : '';
+  switch (log.action) {
+    case 'card_created':
+      return `${actor}이(가) ${entity} 카드를 추가했습니다`;
+    case 'card_moved': {
+      const from = columnLabel(log.meta?.from);
+      const to = columnLabel(log.meta?.to);
+      return `${actor}이(가) ${entity}을(를) ${from} → ${to}로 이동했습니다`;
+    }
+    case 'card_deleted':
+      return `${actor}이(가) ${entity} 카드를 삭제했습니다`;
+    case 'board_joined':
+      return `${actor}이(가) 보드에 참여했습니다`;
+    default:
+      return `${actor}이(가) 작업을 수행했습니다`;
+  }
+}
+
+function columnLabel(status) {
+  return { todo: 'TO-DO', 'in-progress': 'IN-PROGRESS', done: 'DONE' }[status] || status || '';
+}
+
+function timeAgo(dateStr) {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const min = Math.floor(diff / 60000);
+  if (min < 1) return '방금 전';
+  if (min < 60) return `${min}분 전`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}시간 전`;
+  return `${Math.floor(hr / 24)}일 전`;
+}
+
+/* ── 공유 링크 ── */
+async function copyShareLink() {
+  const { data, error } = await db
+    .from('boards')
+    .select('share_token')
+    .eq('id', boardId)
+    .single();
+
+  if (error || !data?.share_token) {
+    showToast('링크 복사 실패. 잠시 후 다시 시도하세요.');
+    return;
+  }
+
+  const url = `${location.origin}${location.pathname}?share=${data.share_token}`;
+  await navigator.clipboard.writeText(url);
+  showToast('공유 링크가 복사되었습니다!');
+}
+
+/* ── 활동 패널 토글 ── */
+function toggleActivityPanel() {
+  activityPanelOpen = !activityPanelOpen;
+  document.getElementById('activity-panel').classList.toggle('open', activityPanelOpen);
+  document.getElementById('activity-btn').classList.toggle('active', activityPanelOpen);
+}
+
+/* ── 토스트 ── */
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('show'), 2500);
+}
+
 /* ── 유틸 ── */
 function escapeHtml(str) {
-  return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 function priorityLabel(p) {

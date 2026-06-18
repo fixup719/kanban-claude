@@ -130,6 +130,30 @@
 
 ---
 
+### [14] 팀 공유 및 활동 로그 구현
+
+**요청:** 가이드라인 기반으로 팀 공유 및 활동 로그 기능 구현
+
+**작업:**
+- `docs/migration_share_activity.sql` 생성 — Supabase SQL Editor에서 실행할 마이그레이션 스크립트
+  - `boards.share_token` 컬럼 추가 (UUID, 고유값)
+  - `boards` / `cards` RLS 정책 갱신 (공유 보드 읽기/쓰기 허용)
+  - `activity_logs` 테이블 생성 및 RLS 정책 추가
+- `index.html`: 헤더에 "링크 복사" / "활동 로그" 버튼 추가, 활동 로그 사이드 패널 추가, 토스트 알림 엘리먼트 추가
+- `style.css`: 사이드 패널 슬라이드 애니메이션, 활동 항목 스타일, 토스트 스타일 추가
+- `app.js` 주요 변경:
+  - URL `?share=<token>` 파라미터로 공유 보드 진입 (`ensureBoard()` 분기)
+  - `logActivity()` — 카드 추가/이동/삭제/보드 참여 시 `activity_logs`에 INSERT
+  - `loadActivityLogs()` / `renderActivityLogs()` — 최근 50개 로그 로드 및 렌더링
+  - `subscribeRealtime()` — `activity_logs` 채널 추가 (팀원 로그 실시간 수신)
+  - `copyShareLink()` — `share_token` 기반 URL을 클립보드에 복사 + 토스트
+  - `toggleActivityPanel()` — 사이드 패널 열기/닫기
+  - `buildActivityItem()` / `actionLabel()` / `timeAgo()` — 로그 항목 렌더링 유틸
+
+> **Supabase 설정 필요:** `docs/migration_share_activity.sql` 실행 후, Database → Replication에서 `activity_logs` 테이블 Realtime 활성화
+
+---
+
 ### [13] 팀 공유 및 활동 로그 구현 가이드라인 요청
 
 **요청:** 칸반 보드를 팀원과 공유하고 활동 로그를 기록하는 기능을 어떤 방향으로 구현할지 가이드라인 작성 요청
