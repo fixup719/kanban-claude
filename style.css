@@ -296,6 +296,144 @@ header h1 {
   background: #c73652;
 }
 
+/* Login Overlay */
+.login-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: #1a1a2e;
+  z-index: 200;
+  align-items: center;
+  justify-content: center;
+}
+
+.login-overlay.active {
+  display: flex;
+}
+
+.login-box {
+  background: #16213e;
+  border: 1px solid #0f3460;
+  border-radius: 16px;
+  padding: 40px 36px;
+  width: 100%;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+}
+
+.login-box h1 {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: #e94560;
+  letter-spacing: 2px;
+}
+
+.login-subtitle {
+  font-size: 0.88rem;
+  color: #9e9e9e;
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+#google-login-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 20px;
+  background: #fff;
+  color: #333;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  justify-content: center;
+  transition: background 0.2s, transform 0.1s;
+}
+
+#google-login-btn:hover {
+  background: #f0f0f0;
+  transform: translateY(-1px);
+}
+
+.login-divider {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #555;
+  font-size: 0.8rem;
+}
+
+.login-divider::before,
+.login-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #0f3460;
+}
+
+#guest-login-btn {
+  width: 100%;
+  padding: 12px 20px;
+  background: transparent;
+  color: #9e9e9e;
+  border: 1px solid #0f3460;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+#guest-login-btn:hover {
+  border-color: #e94560;
+  color: #e0e0e0;
+}
+
+/* Header right area */
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+#user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.85rem;
+  color: #9e9e9e;
+}
+
+#user-info .user-name {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#logout-btn {
+  padding: 6px 14px;
+  background: transparent;
+  color: #9e9e9e;
+  border: 1px solid #0f3460;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+#logout-btn:hover {
+  border-color: #e94560;
+  color: #e94560;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .board {

@@ -8,20 +8,57 @@ let placeholder = null;
 
 /* ── 초기화 ── */
 async function init() {
-  await ensureSession();
+  const { data: { session } } = await db.auth.getSession();
+  if (session) {
+    await startBoard();
+  } else {
+    showLoginOverlay();
+  }
+}
+
+function showLoginOverlay() {
+  document.getElementById('login-overlay').classList.add('active');
+
+  document.getElementById('google-login-btn').addEventListener('click', async () => {
+    await db.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.href }
+    });
+  });
+
+  document.getElementById('guest-login-btn').addEventListener('click', async () => {
+    const { error } = await db.auth.signInAnonymously();
+    if (error) { console.error('익명 로그인 실패:', error.message); return; }
+    document.getElementById('login-overlay').classList.remove('active');
+    await startBoard();
+  });
+}
+
+async function startBoard() {
   boardId = await ensureBoard();
   await loadCards();
   render();
   bindModal();
   subscribeRealtime();
+  renderUserInfo();
 }
 
-async function ensureSession() {
-  const { data: { session } } = await db.auth.getSession();
-  if (!session) {
-    const { error } = await db.auth.signInAnonymously();
-    if (error) console.error('익명 로그인 실패:', error.message);
-  }
+function renderUserInfo() {
+  const userInfoEl = document.getElementById('user-info');
+  db.auth.getUser().then(({ data: { user } }) => {
+    if (!user) return;
+    const isGuest = user.is_anonymous;
+    const name = user.user_metadata?.full_name || user.email || '게스트';
+    userInfoEl.innerHTML = `
+      <span class="user-name">${escapeHtml(isGuest ? '게스트' : name)}</span>
+      <button id="logout-btn" type="button">로그아웃</button>
+    `;
+    document.getElementById('logout-btn').addEventListener('click', async () => {
+      await db.auth.signOut();
+      localStorage.removeItem('kanban_board_id');
+      window.location.reload();
+    });
+  });
 }
 
 async function ensureBoard() {
